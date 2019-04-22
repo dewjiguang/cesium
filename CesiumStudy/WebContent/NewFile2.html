@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!-- Tell IE to use the latest, best version. -->
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<!-- Make the application on mobile take up the full browser screen and disable user scaling. -->
+<meta name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+<title>Hello World!</title>
+<script src="./Cesium/Cesium.js"></script>
+<style>
+@import url(./Cesium/Widgets/widgets.css);
+
+html, body, #cesiumContainer {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+</style>
+<div id="toolbar"></div>
+</head>
+<body>
+    <div id="cesiumContainer"></div>
+     <script>
+     Cesium.Ion.defaultAccessToken='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI3YzQ1YjI0NC05Nzg3LTQxOTQtYTBlMi1hNGMyMjVhYTJlODMiLCJpZCI6ODYyMCwic2NvcGVzIjpbImFzciIsImdjIl0sImlhdCI6MTU1MjM5MDU1MX0.6YczoUSHFcXfCuL5EAM7WWpld4Q5op-Lsc9HDYX1DgE';
+     
+     var viewer = new Cesium.Viewer('cesiumContainer');
+      
+      
+         var layers = viewer.imageryLayers;
+         //添加各国夜晚灯光亮度图
+         var blackMarble =layers.addImageryProvider(Cesium.createTileMapServiceImageryProvider({
+             url: 'https://cesiumjs.org/blackmarble',
+             credit: 'Black Marble imagery courtesy NASA EarthObservatory',
+             flipXY: false // Only old gdal2tile.py generatedtilesets need this flag.
+         }));
+      
+      
+       
+  
+         
+         
+     
+         
+         
+         
+         Cesium.Math.setRandomNumberSeed(0);
+         
+         var promise =Cesium.GeoJsonDataSource.load('data/data.json');
+      
+         promise.then(function (dataSource) {
+      
+             viewer.dataSources.add(dataSource);
+             //下面这些删掉后高度颜色会变
+      
+             var entities =dataSource.entities.values;
+      
+             var colorHash = {};
+      
+             for (var i = 0; i < entities.length;i++) {
+      
+                 var entity = entities[i];
+      
+                 var name = entity.name;//name是一个id号，但不是建筑的id，因为一共有1729个
+      			var floor=entity.Floor;
+                 var color = colorHash[name];
+      
+                 if (!color) {
+      
+                     color =Cesium.Color.fromRandom({
+      
+                         alpha: 1.0
+      
+                     });
+      
+                     colorHash[name] = color;
+      
+                 }
+      
+                 entity.polygon.material = color;
+      
+                 entity.polygon.outline = false;
+      
+                entity.polygon.extrudedHeight =500.0;
+               // console.log(i);
+                console.log(Cesium.Color.BLUE);
+      
+             }
+             //上面
+      
+         });
+      
+         viewer.flyTo(promise);
+
+  
+  
+  </script>
+    </body>
+</html>

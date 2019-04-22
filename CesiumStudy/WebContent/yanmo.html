@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!-- Tell IE to use the latest, best version. -->
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<!-- Make the application on mobile take up the full browser screen and disable user scaling. -->
+<meta name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+<title>Hello World!</title>
+<script src="./Cesium/Cesium.js"></script>
+<style>
+@import url(./Cesium/Widgets/widgets.css);
+
+html, body, #cesiumContainer {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+</style>
+<div id="toolbar"></div>
+</head>
+<body>
+    <div id="cesiumContainer"></div>
+      <script>
+      
+      
+      
+      
+import styles from './cesium.less';
+import React from 'react';
+import Cesium from 'cesium/Cesium';
+
+//Cesium.BingMapsApi.defaultKey = '必应地图Key.具体请自己申请';
+Cesium.Ion.defaultAccessToken='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI3YzQ1YjI0NC05Nzg3LTQxOTQtYTBlMi1hNGMyMjVhYTJlODMiLCJpZCI6ODYyMCwic2NvcGVzIjpbImFzciIsImdjIl0sImlhdCI6MTU1MjM5MDU1MX0.6YczoUSHFcXfCuL5EAM7WWpld4Q5op-Lsc9HDYX1DgE';
+
+
+
+require('cesium/Widgets/widgets.css');
+
+export default class CesiumPage extends React.Component {
+
+  state = {
+    log_String: '',
+    lat_String: '',
+    alti_String: '',
+    adapCoordi: [],
+    maxHeight: 0,
+  }
+
+  componentDidMount() {
+   this.initCesium();
+  }
+
+  initCesium = () => {
+    const url = 'https://dev.virtualearth.net';
+    let viewer = new Cesium.Viewer('cesiumContainer', {
+      scene3DOnly: true,
+      selectionIndicator: false,
+      //geocoder: false, //是否显示地名查找控件
+      //homeButton: true, 
+      baseLayerPicker:false, //是否显示图层选择控件
+      // navigationHelpButton:false,
+      //animation: false, // 是否创建动画小器件，左下角仪表
+      //timeline: false, //是否显示时间线控件
+      //vrButton: false, //是否展示VR按钮
+      //fullscreenButton: true, //右下角全屏按钮
+    });
+    viewer.cesiumWidget.creditContainer.style.display = 'none';
+    //使用必应地图作为底图
+    viewer.imageryLayers.addImageryProvider(new Cesium.BingMapsImageryProvider({
+      url: url,
+      mapStyle: Cesium.BingMapsStyle.AERIAL
+    }))
+    //增加地形、
+    viewer.terrainProvider = new Cesium.CesiumTerrainProvider({
+      url: "http://data.marsgis.cn/terrain",//中国地形
+      //url: Cesium.IonResource.fromAssetId(1), //世界地形
+      requestWaterMask: false, // 增加水文
+      requestVertexNormals: false, //增加光线
+    })
+    //启用深度测试以使地形后的物体被挡住
+    viewer.scene.globe.depthTestAgainstTerrain = false;
+    //绑定鼠标移动时,实时显示坐标及高度
+    this.coordinateShow(viewer);
+    /* let initialPosition = new Cesium.Cartesian3.fromDegrees(107.5116,29.4605, 4120);
+    let homeCameraView = {destination : initialPosition,};        
+    viewer.scene.camera.setView(homeCameraView); */
+    //设置镜头到具体位置及角度
+    this.setPointAdress(viewer);
+
+    this.viewer = viewer;
+  }
+
+  //鼠标移动实时显示坐标及视角高度函数
+  coordinateShow = (viewer) => {
+    let _this = this,
+        canvas= viewer.scene.canvas;
+    //具体事件的实现
+    let ellipsoid=viewer.scene.globe.ellipsoid;
+    let handler = new Cesium.ScreenSpaceEventHandler(canvas);
+    handler.setInputAction(function(movement){
+        //捕获椭球体，将笛卡尔二维平面坐标转为椭球体的笛卡尔三维坐标，返回球体表面的点
+        let cartesian=viewer.camera.pickEllipsoid(movement.endPosition, ellipsoid);
+          if(cartesian){
+              //将笛卡尔三维坐标转为地图坐标（弧度）
+              let cartographic=viewer.scene.globe.ellipsoid.cartesianToCartographic(cartesian);
+              //将地图坐标（弧度）转为十进制的度数
+              let lat_String=Cesium.Math.toDegrees(cartographic.latitude).toFixed(4),
+                  log_String=Cesium.Math.toDegrees(cartographic.longitude).toFixed(4),
+                  alti_String=(viewer.camera.positionCartographic.height/1000).toFixed(2);
+              _this.setState({
+                log_String,
+                lat_String,
+                alti_String
+              })
+          }
+    },Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+  }
+  //设置视角位置及角度
+  setPointAdress = (viewer) => {
+    const centerPoint = [107.52, 29.422];
+    viewer.camera.flyTo({
+      destination :  Cesium.Cartesian3.fromDegrees(...centerPoint, 1500), // 设置位置
+      orientation: {
+          heading : Cesium.Math.toRadians(-10.0), // 方向
+          pitch : Cesium.Math.toRadians(-5.0),// 倾斜角度
+          roll : 0, //Cesium.Math.toRadians(-38.0)
+      },
+      duration:5, // 设置飞行持续时间，默认会根据距离来计算
+      complete: function () {
+          // 到达位置后执行的回调函数
+          console.log('到达目的地');
+      },
+      cancle: function () {
+          // 如果取消飞行则会调用此函数
+          console.log('飞行取消')
+      },
+      pitchAdjustHeight: -90, // 如果摄像机飞越高于该值，则调整俯仰俯仰的俯仰角度，并将地球保持在视口中。
+      maximumHeight:5000, // 相机最大飞行高度
+      flyOverLongitude: 100, // 如果到达目的地有2种方式，设置具体值后会强制选择方向飞过这个经度
+    });
+  }
+
+  setIf = () => {
+    let _this = this;
+    _this.drawPolygon((positions) => {
+      let wgs84_positions = [],
+          areaAdapCoordi = [],
+          maxHeight = 0;
+      for(var i=0; i<positions.length; i++){
+          var wgs84_point = _this.Cartesian3_to_WGS84({
+              x: positions[i].x,
+              y: positions[i].y,
+              z: positions[i].z
+          });
+          wgs84_positions.push(wgs84_point);
+      }
+      //获取鼠标点击的位置高度貌似有问题，为了呈现水的高度，所以手动调增*300米。
+      maxHeight = Math.max(...wgs84_positions.map(item => item.alt * 300));
+      wgs84_positions.map(item => [item.lng, item.lat, item.alt]).map(item => item.forEach(e => areaAdapCoordi.push(e)));
+      this.setState({
+        adapCoordi: areaAdapCoordi,//设置选取位置的坐标
+        maxHeight: maxHeight // 设置最高高度，即水漫到多高
+      })
+    });
+  }
+
+  //画面
+  drawPolygon = (callback) => {
+    var _this = this;
+    var PolygonPrimitive = (function () {
+        function _(positions) {
+            this.options = {
+                id:'drawPolygonforwater',
+                name: '多边形',
+                polygon: {
+                    hierarchy: [],
+                    perPositionHeight: true,
+                    material: Cesium.Color.RED.withAlpha(0.5),
+                    outline : true,
+                    outlineColor : Cesium.Color.WHITE,
+                    outlineWidth : 4,
+                }
+            };
+            this.hierarchy = positions;
+            this._init();
+        }
+
+        _.prototype._init = function () {
+            var _self = this;
+            var _update = function () {
+                return _self.hierarchy;
+            };
+            //实时更新polygon.hierarchy
+            this.options.polygon.hierarchy = new Cesium.CallbackProperty(_update, false);
+            _this.viewer.entities.add(this.options);
+        };
+        return _;
+    })();
+
+    var handler = new Cesium.ScreenSpaceEventHandler(_this.viewer.scene.canvas);
+    var positions = [];
+    var poly = undefined;
+
+    //鼠标单击画点
+    handler.setInputAction(function (movement) {
+        let cartesian=_this.viewer.scene.camera.pickEllipsoid(movement.position, _this.viewer.scene.globe.ellipsoid);
+        if (positions.length === 0) {
+            positions.push(cartesian.clone());
+        }
+        positions.push(cartesian);
+    }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+    //鼠标移动
+    handler.setInputAction(function (movement) {
+        var cartesian = _this.viewer.scene.camera.pickEllipsoid(movement.endPosition, _this.viewer.scene.globe.ellipsoid);
+        if (positions.length >= 2) {
+            if (!Cesium.defined(poly)) {
+                poly = new PolygonPrimitive(positions);
+            } else {
+                if(cartesian !== undefined){
+                      positions.pop();
+                      cartesian.y += (1 + Math.random());
+                      positions.push(cartesian);
+                }
+            }
+        }
+    }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+    //鼠标右键单击结束绘制
+    handler.setInputAction(function (movement) {
+        handler.destroy();
+        callback(positions);
+    }, Cesium.ScreenSpaceEventType.RIGHT_CLICK);
+  }
+
+  //笛卡尔坐标系转WGS84坐标系
+  Cartesian3_to_WGS84 = (point) =>  {
+      let cartesian33 = new Cesium.Cartesian3(point.x, point.y, point.z),
+          cartographic = Cesium.Cartographic.fromCartesian(cartesian33),
+          lat = Cesium.Math.toDegrees(cartographic.latitude),
+          lng = Cesium.Math.toDegrees(cartographic.longitude),
+          alt = cartographic.height;
+      return {lat: lat, lng: lng, alt: alt};
+   }
+
+   _drawWater = () => {
+    const { maxHeight } = this.state;
+    const targetHeight = maxHeight;
+    let _this = this;
+    //移除选取的多边形
+    _this.viewer.entities.removeById('drawPolygonforwater');
+    //将全局的 地形设置改为地形遮挡，这样山体可将水漫立方体挡住
+    _this.viewer.scene.globe.depthTestAgainstTerrain = !0;
+    const { adapCoordi } = this.state;
+    this.viewer.entities.removeById('polygonforwaterYanmo');
+    let WaterPolygonPrimitive = (function () {
+        function _(height) {
+            this.options = {
+                id:'polygonforwaterYanmo',
+                name: '水文立方体',
+                polygon: {
+                  hierarchy: Cesium.Cartesian3.fromDegreesArrayHeights(adapCoordi),
+                  material: Cesium.Color.CORNFLOWERBLUE.withAlpha(0.8),
+                  perPositionHeight: true,
+                  extrudedHeight: 0,
+                }
+            };
+            this.extrudedHeight = height;
+            this._init();
+        }
+
+        _.prototype._init = function () {
+            var _self = this;
+            var _update = function () {
+              return _self.extrudedHeight;
+            };
+            //实时更新polygon.extrudedHeight
+            this.options.polygon.extrudedHeight = new Cesium.CallbackProperty(_update, false);
+            _this.viewer.entities.add(this.options);
+        };
+        return _;
+    })();
+    let height = 0,
+        warterEn = new WaterPolygonPrimitive(height),
+        waterHeight = 0;
+    this.timer = setInterval(() => {
+      if (waterHeight < targetHeight) {
+        waterHeight += 2
+        if (waterHeight > targetHeight) {
+          waterHeight = targetHeight
+        }
+        warterEn.extrudedHeight = waterHeight;
+      }
+    }, 100);
+    }
+
+  render() {
+    const { log_String, lat_String, alti_String } = this.state;
+    return (<div className={styles.cesium}>
+      <button onClick={() => this.setIf()}>绘制区域</button>
+      <button style={{marginLeft: 8}} onClick={() => this._drawWater()}>开始分析</button>
+      <div id="cesiumContainer" className={styles.cesiumContainer}>
+        <div className={styles.latlng_show}>
+          <div className={styles.latlng_show_log}>
+              <font size="3" color="white">经度：<span>{log_String}</span></font>
+          </div>
+          <div className={styles.latlng_show_lat}>
+              <font size="3" color="white">纬度：<span>{lat_String}</span></font>
+          </div>
+          <div className={styles.latlng_show_alt}>
+              <font size="3" color="white">视角高：<span>{alti_String}</span>km</font>
+          </div>
+        </div>
+      </div>
+    </div>);
+  }
+}
+
+      </script>
+    </body>
+</html>

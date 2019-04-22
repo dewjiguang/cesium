@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!-- Tell IE to use the latest, best version. -->
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<!-- Make the application on mobile take up the full browser screen and disable user scaling. -->
+<meta name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+<title>Hello World!</title>
+<script src="./Cesium/Cesium.js"></script>
+<style>
+@import url(./Cesium/Widgets/widgets.css);
+
+html, body, #cesiumContainer {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+</style>
+<div id="toolbar"></div>
+</head>
+<body>
+    <div id="cesiumContainer"></div>
+      <script>
+      <!--Cesium.BingMapsApi.defaultKey ='AvzM4FgDkpuZwkwP9DPDUwq15NUTJxHNyyUHGSXiA9JwAtAinnlPS31PvwB3hcWh';-->
+      Cesium.Ion.defaultAccessToken='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI3YzQ1YjI0NC05Nzg3LTQxOTQtYTBlMi1hNGMyMjVhYTJlODMiLCJpZCI6ODYyMCwic2NvcGVzIjpbImFzciIsImdjIl0sImlhdCI6MTU1MjM5MDU1MX0.6YczoUSHFcXfCuL5EAM7WWpld4Q5op-Lsc9HDYX1DgE';
+        <!--var promise = Cesium.KmlDataSource.load('data.kml');-->
+        <!--viewer.dataSources.add(Cesium.KmlDataSource.load('bikeRide.kml',options));-->
+        var viewer = new Cesium.Viewer('cesiumContainer');
+        var options = {
+            camera : viewer.scene.camera,
+            canvas : viewer.scene.canvas
+        };
+        Sandcastle.addToolbarMenu([
+         {
+            text : 'gx KML extensions - Bike Ride',
+            onselect : function() {
+                viewer.dataSources.add(Cesium.KmlDataSource.load('/bikeRide.kml', options)).then(function(dataSource){
+                    viewer.clock.shouldAnimate = false;
+                    var rider = dataSource.entities.getById('tour');
+                    viewer.flyTo(rider).then(function(){
+                        viewer.trackedEntity = rider;
+                        viewer.selectedEntity = viewer.trackedEntity;
+                        viewer.clock.multiplier = 30;
+                        viewer.clock.shouldAnimate = true;
+                    });
+                });
+            }
+        }], 'toolbar');
+
+        Sandcastle.reset = function() {
+            viewer.dataSources.removeAll();
+            viewer.clock.clockRange = Cesium.ClockRange.UNBOUNDED;
+            viewer.clock.clockStep = Cesium.ClockStep.SYSTEM_CLOCK;
+        };
+
+        viewer.zoomTo(viewer.entities);
+      </script>
+    </body>
+</html>

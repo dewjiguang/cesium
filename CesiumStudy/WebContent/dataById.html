@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!-- Tell IE to use the latest, best version. -->
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<!-- Make the application on mobile take up the full browser screen and disable user scaling. -->
+<meta name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+<title>Hello World!</title>
+<script src="./Cesium/Cesium.js"></script>
+<style>
+@import url(./Cesium/Widgets/widgets.css);
+
+html, body, #cesiumContainer {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+</style>
+
+</head>
+<body>
+    <div id="cesiumContainer">
+	    <div id="toolbar">
+			<select onchange="colorchange()" id="my" class="cesium-button" style="position:absolute;top:50px;z-index:2">
+			  	<option value="1">colorByHeight</option>
+			  	<option value="2">colorByLatitude</option>
+			  	<option value="3">colorByDistance</option>
+			  	<option value="4">colorByNameRegex</option>
+			  	
+		  	</select>
+		</div>
+    </div>
+     <script type="text/javascript">
+     
+  		 function colorchange(){
+
+     	var my=document.getElementById("my").value;
+
+     	switch(my){
+     		case "1":
+     			colorByHeight();
+     	
+     		break;
+     		case "2":
+     			colorByLatitude();
+    
+     		break;
+     		case "3":
+     			colorByDistance();
+     			break
+     		case "4":
+     			colorByNameRegex();
+     			break;
+     		default:
+     			alert("出错");
+     		
+     		
+     	}
+     }
+  // A demo of interactive 3D Tiles styling
+  // Styling language Documentation: https://github.com/AnalyticalGraphicsInc/3d-tiles/tree/master/specification/Styling
+  // Building data courtesy of NYC OpenData portal: http://www1.nyc.gov/site/doitt/initiatives/3d-building.page
+   Cesium.Ion.defaultAccessToken='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI3YzQ1YjI0NC05Nzg3LTQxOTQtYTBlMi1hNGMyMjVhYTJlODMiLCJpZCI6ODYyMCwic2NvcGVzIjpbImFzciIsImdjIl0sImlhdCI6MTU1MjM5MDU1MX0.6YczoUSHFcXfCuL5EAM7WWpld4Q5op-Lsc9HDYX1DgE';
+       
+  var viewer = new Cesium.Viewer('cesiumContainer', {
+      terrainProvider: Cesium.createWorldTerrain(),
+      timeline : false,
+      animation : false
+  });
+
+  viewer.scene.globe.depthTestAgainstTerrain = true;
+
+  // Set the initial camera view to look at Manhattan
+  var initialPosition = Cesium.Cartesian3.fromDegrees(-74.01881302800248, 40.69114333714821, 753);
+  var initialOrientation = new Cesium.HeadingPitchRoll.fromDegrees(21.27879878293835, -21.34390550872461, 0.0716951918898415);
+  viewer.scene.camera.setView({
+      destination: initialPosition,
+      orientation: initialOrientation,
+      endTransform: Cesium.Matrix4.IDENTITY
+  });
+
+  // Load the NYC buildings tileset.
+  var tileset = new Cesium.Cesium3DTileset({ url: Cesium.IonResource.fromAssetId(20949) });
+  console.log( Cesium.IonResource.fromAssetId(20949) );
+ // alert(Cesium.IonResource.fromAssetId(20949));
+  viewer.scene.primitives.add(tileset);
+
+  // Color buildings based on their height.
+  function colorByHeight() {
+      tileset.style = new Cesium.Cesium3DTileStyle({
+          color: {
+              conditions: [
+                  ['${height} >= 300', 'rgba(45, 0, 75, 0.5)'],
+                  ['${height} >= 200', 'rgb(102, 71, 151)'],
+                  ['${height} >= 100', 'rgb(170, 162, 204)'],
+                  ['${height} >= 50', 'rgb(224, 226, 238)'],
+                  ['${height} >= 25', 'rgb(252, 230, 200)'],
+                  ['${height} >= 10', 'rgb(248, 176, 87)'],
+                  ['${height} >= 5', 'rgb(198, 106, 11)'],
+                  ['true', 'rgb(127, 59, 8)']
+              ]
+          }
+      });
+  }
+
+  // Color buildings by their latitude coordinate.
+  function colorByLatitude() {
+      tileset.style = new Cesium.Cesium3DTileStyle({
+          defines: {
+              latitudeRadians: 'radians(${latitude})'
+          },
+          color: {
+              conditions: [
+                  ['${latitudeRadians} >= 0.7125', "color('purple')"],
+                  ['${latitudeRadians} >= 0.712', "color('red')"],
+                  ['${latitudeRadians} >= 0.7115', "color('orange')"],
+                  ['${latitudeRadians} >= 0.711', "color('yellow')"],
+                  ['${latitudeRadians} >= 0.7105', "color('lime')"],
+                  ['${latitudeRadians} >= 0.710', "color('cyan')"],
+                  ['true', "color('blue')"]
+              ]
+          }
+      });
+  }
+
+  // Color buildings by distance from a landmark.
+  function colorByDistance() {
+      tileset.style = new Cesium.Cesium3DTileStyle({
+          defines : {
+              distance : 'distance(vec2(radians(${longitude}), radians(${latitude})), vec2(-1.291777521, 0.7105706624))'
+          },
+          color : {
+              conditions : [
+                  ['${distance} > 0.0012',"color('gray')"],
+                  ['${distance} > 0.0008', "mix(color('yellow'), color('red'), (${distance} - 0.008) / 0.0004)"],
+                  ['${distance} > 0.0004', "mix(color('green'), color('yellow'), (${distance} - 0.0004) / 0.0004)"],
+                  ['${distance} < 0.00001', "color('white')"],
+                  ['true', "mix(color('blue'), color('green'), ${distance} / 0.0004)"]
+              ]
+          }
+      });
+  }
+
+  // Color buildings with a '3' in their name.
+  function colorByNameRegex() {
+      tileset.style = new Cesium.Cesium3DTileStyle({
+          color : "(regExp('3').test(String(${name}))) ? color('cyan', 0.9) : color('purple', 0.1)"
+      });
+  }
+
+  // Show only buildings greater than 200 meters in height.
+  function hideByHeight() {
+      tileset.style = new Cesium.Cesium3DTileStyle({
+          show : '${height} > 200'
+      });
+  }
+ // colorByHeight();
+ colorByHeight();
+ 
+
+ 
+
+ 
+ var scene = viewer.scene;
+
+
+ scene.globe.depthTestAgainstTerrain = true;
+ var viewModel = {
+		    rightClickAction: 'annotate',
+		    middleClickAction: 'hide'
+		};
+
+		Cesium.knockout.track(viewModel);
+ 
+ 
+ 
+ 
+ 
+ 
+ var handler = new Cesium.ScreenSpaceEventHandler(viewer.canvas);
+
+ handler.setInputAction(function(movement) {
+     var feature = scene.pick(movement.position);
+     if (!Cesium.defined(feature)) {
+         return;
+     }
+
+     var action = viewModel.rightClickAction;
+ 
+  
+
+      zoom(movement, feature);},
+     
+  Cesium.ScreenSpaceEventType.RIGHT_CLICK);
+
+ handler.setInputAction(function(movement) {
+     var feature = scene.pick(movement.position);
+     if (!Cesium.defined(feature)) {
+         return;
+     }
+
+     var action = viewModel.middleClickAction;
+     if (action === 'hide') {
+         feature.show = false;
+     }
+ }, Cesium.ScreenSpaceEventType.MIDDLE_CLICK);
+ function zoom(movement, feature) {
+	    var longitude = Cesium.Math.toRadians(feature.getProperty('longitude'));
+	    var latitude = Cesium.Math.toRadians(feature.getProperty('latitude'));
+	    var height = feature.getProperty('height');
+
+	    var positionCartographic = new Cesium.Cartographic(longitude, latitude, height * 0.5);
+	    var position = scene.globe.ellipsoid.cartographicToCartesian(positionCartographic);
+
+	    var camera = scene.camera;
+	    var heading = camera.heading;
+	    var pitch = camera.pitch;
+
+	    var offset = offsetFromHeadingPitchRange(heading, pitch, height * 2.0);
+
+	    var transform = Cesium.Transforms.eastNorthUpToFixedFrame(position);
+	    Cesium.Matrix4.multiplyByPoint(transform, offset, position);
+
+	    camera.flyTo({
+	        destination : position,
+	        orientation : {
+	            heading : heading,
+	            pitch : pitch
+	        },
+	        easingFunction : Cesium.EasingFunction.QUADRATIC_OUT
+	    });
+	}
+ function offsetFromHeadingPitchRange(heading, pitch, range) {
+	    pitch = Cesium.Math.clamp(pitch, -Cesium.Math.PI_OVER_TWO, Cesium.Math.PI_OVER_TWO);
+	    heading = Cesium.Math.zeroToTwoPi(heading) - Cesium.Math.PI_OVER_TWO;
+
+	    var pitchQuat = Cesium.Quaternion.fromAxisAngle(Cesium.Cartesian3.UNIT_Y, -pitch);
+	    var headingQuat = Cesium.Quaternion.fromAxisAngle(Cesium.Cartesian3.UNIT_Z, -heading);
+	    var rotQuat = Cesium.Quaternion.multiply(headingQuat, pitchQuat, headingQuat);
+	    var rotMatrix = Cesium.Matrix3.fromQuaternion(rotQuat);
+
+	    var offset = Cesium.Cartesian3.clone(Cesium.Cartesian3.UNIT_X);
+	    Cesium.Matrix3.multiplyByVector(rotMatrix, offset, offset);
+	    Cesium.Cartesian3.negate(offset, offset);
+	    Cesium.Cartesian3.multiplyByScalar(offset, range, offset);
+	    return offset;
+	}
+  
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ var nameOverlay = document.createElement('div');
+ viewer.container.appendChild(nameOverlay);
+ nameOverlay.className = 'backdrop';
+ nameOverlay.style.display = 'none';
+ nameOverlay.style.position = 'absolute';
+ nameOverlay.style.bottom = '0';
+ nameOverlay.style.left = '0';
+ nameOverlay.style['pointer-events'] = 'none';
+ nameOverlay.style.padding = '4px';
+ nameOverlay.style.backgroundColor = 'black';
+
+ // Information about the currently selected feature
+ var selected = {
+     feature: undefined,
+     originalColor: new Cesium.Color()
+ };
+
+ // An entity object which will hold info about the currently selected feature for infobox display
+ var selectedEntity = new Cesium.Entity();
+
+ // Get default left click handler for when a feature is not picked on left click
+ var clickHandler = viewer.screenSpaceEventHandler.getInputAction(Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+ // If silhouettes are supported, silhouette features in blue on mouse over and silhouette green on mouse click.
+ // If silhouettes are not supported, change the feature color to yellow on mouse over and green on mouse click.
+ if (Cesium.PostProcessStageLibrary.isSilhouetteSupported(viewer.scene)) {
+     // Silhouettes are supported
+     var silhouetteBlue = Cesium.PostProcessStageLibrary.createEdgeDetectionStage();
+     silhouetteBlue.uniforms.color = Cesium.Color.BLUE;
+     silhouetteBlue.uniforms.length = 0.01;
+     silhouetteBlue.selected = [];
+
+     var silhouetteGreen = Cesium.PostProcessStageLibrary.createEdgeDetectionStage();
+     silhouetteGreen.uniforms.color = Cesium.Color.LIME;
+     silhouetteGreen.uniforms.length = 0.01;
+     silhouetteGreen.selected = [];
+
+     viewer.scene.postProcessStages.add(Cesium.PostProcessStageLibrary.createSilhouetteStage([silhouetteBlue, silhouetteGreen]));
+
+     // Silhouette a feature blue on hover.
+     viewer.screenSpaceEventHandler.setInputAction(function onMouseMove(movement) {
+         // If a feature was previously highlighted, undo the highlight
+         silhouetteBlue.selected = [];
+
+         // Pick a new feature
+         var pickedFeature = viewer.scene.pick(movement.endPosition);
+         if (!Cesium.defined(pickedFeature)) {
+             nameOverlay.style.display = 'none';
+             return;
+         }
+
+         // A feature was picked, so show it's overlay content
+         nameOverlay.style.display = 'block';
+         nameOverlay.style.bottom = viewer.canvas.clientHeight - movement.endPosition.y + 'px';
+         nameOverlay.style.left = movement.endPosition.x + 'px';
+         var name = pickedFeature.getProperty('name');
+         if (!Cesium.defined(name)) {
+             name = pickedFeature.getProperty('id');
+         }
+         nameOverlay.textContent = name;
+
+         // Highlight the feature if it's not already selected.
+         if (pickedFeature !== selected.feature) {
+             silhouetteBlue.selected = [pickedFeature];
+         }
+     }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+
+     // Silhouette a feature on selection and show metadata in the InfoBox.
+     viewer.screenSpaceEventHandler.setInputAction(function onLeftClick(movement) {
+         // If a feature was previously selected, undo the highlight
+         silhouetteGreen.selected = [];
+
+         // Pick a new feature
+         var pickedFeature = viewer.scene.pick(movement.position);
+         if (!Cesium.defined(pickedFeature)) {
+             clickHandler(movement);
+             return;
+         }
+
+         // Select the feature if it's not already selected
+         if (silhouetteGreen.selected[0] === pickedFeature) {
+             return;
+         }
+
+         // Save the selected feature's original color
+         var highlightedFeature = silhouetteBlue.selected[0];
+         if (pickedFeature === highlightedFeature) {
+             silhouetteBlue.selected = [];
+         }
+
+         // Highlight newly selected feature
+         silhouetteGreen.selected = [pickedFeature];
+
+         // Set feature infobox description
+         var featureName = pickedFeature.getProperty('name');
+         selectedEntity.name = featureName;
+         selectedEntity.description = 'Loading <div class="cesium-infoBox-loading"></div>';
+         viewer.selectedEntity = selectedEntity;
+         selectedEntity.description = '<table class="cesium-infoBox-defaultTable"><tbody>' +
+                                      '<tr><th>BIN</th><td>' + pickedFeature.getProperty('BIN') + '</td></tr>' +
+                                      '<tr><th>DOITT ID</th><td>' + pickedFeature.getProperty('DOITT_ID') + '</td></tr>' +
+                                      '<tr><th>SOURCE ID</th><td>' + pickedFeature.getProperty('SOURCE_ID') + '</td></tr>' +
+                                      '</tbody></table>';
+     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+ } else {
+     // Silhouettes are not supported. Instead, change the feature color.
+
+     // Information about the currently highlighted feature
+     var highlighted = {
+         feature : undefined,
+         originalColor : new Cesium.Color()
+     };
+
+     // Color a feature yellow on hover.
+     viewer.screenSpaceEventHandler.setInputAction(function onMouseMove(movement) {
+         // If a feature was previously highlighted, undo the highlight
+         if (Cesium.defined(highlighted.feature)) {
+             highlighted.feature.color = highlighted.originalColor;
+             highlighted.feature = undefined;
+         }
+         // Pick a new feature
+         var pickedFeature = viewer.scene.pick(movement.endPosition);
+         if (!Cesium.defined(pickedFeature)) {
+             nameOverlay.style.display = 'none';
+             return;
+         }
+         // A feature was picked, so show it's overlay content
+         nameOverlay.style.display = 'block';
+         nameOverlay.style.bottom = viewer.canvas.clientHeight - movement.endPosition.y + 'px';
+         nameOverlay.style.left = movement.endPosition.x + 'px';
+         var name = pickedFeature.getProperty('name');
+         if (!Cesium.defined(name)) {
+             name = pickedFeature.getProperty('id');
+         }
+         nameOverlay.textContent = name;
+         // Highlight the feature if it's not already selected.
+         if (pickedFeature !== selected.feature) {
+             highlighted.feature = pickedFeature;
+             Cesium.Color.clone(pickedFeature.color, highlighted.originalColor);
+             pickedFeature.color = Cesium.Color.YELLOW;
+         }
+     }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+
+     // Color a feature on selection and show metadata in the InfoBox.
+     viewer.screenSpaceEventHandler.setInputAction(function onLeftClick(movement) {
+         // If a feature was previously selected, undo the highlight
+         if (Cesium.defined(selected.feature)) {
+             selected.feature.color = selected.originalColor;
+             selected.feature = undefined;
+         }
+         // Pick a new feature
+         var pickedFeature = viewer.scene.pick(movement.position);
+         if (!Cesium.defined(pickedFeature)) {
+             clickHandler(movement);
+             return;
+         }
+         // Select the feature if it's not already selected
+         if (selected.feature === pickedFeature) {
+             return;
+         }
+         selected.feature = pickedFeature;
+         // Save the selected feature's original color
+         if (pickedFeature === highlighted.feature) {
+             Cesium.Color.clone(highlighted.originalColor, selected.originalColor);
+             highlighted.feature = undefined;
+         } else {
+             Cesium.Color.clone(pickedFeature.color, selected.originalColor);
+         }
+         // Highlight newly selected feature
+         pickedFeature.color = Cesium.Color.LIME;
+         // Set feature infobox description
+         var featureName = pickedFeature.getProperty('name');
+         selectedEntity.name = featureName;
+         selectedEntity.description = 'Loading <div class="cesium-infoBox-loading"></div>';
+         viewer.selectedEntity = selectedEntity;
+         selectedEntity.description = '<table class="cesium-infoBox-defaultTable"><tbody>' +
+                                      '<tr><th>BIN</th><td>' + pickedFeature.getProperty('BIN') + '</td></tr>' +
+                                      '<tr><th>DOITT ID</th><td>' + pickedFeature.getProperty('DOITT_ID') + '</td></tr>' +
+                                      '<tr><th>SOURCE ID</th><td>' + pickedFeature.getProperty('SOURCE_ID') + '</td></tr>' +
+                                      '<tr><th>Longitude</th><td>' + pickedFeature.getProperty('longitude') + '</td></tr>' +
+                                      '<tr><th>Latitude</th><td>' + pickedFeature.getProperty('latitude') + '</td></tr>' +
+                                      '<tr><th>Height</th><td>' + pickedFeature.getProperty('height') + '</td></tr>' +
+                                      '<tr><th>Terrain Height (Ellipsoid)</th><td>' + pickedFeature.getProperty('TerrainHeight') + '</td></tr>' +
+                                      '</tbody></table>';
+     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+ }
+
+
+  
+  </script>
+  
+    </body>
+</html>
