@@ -1,9 +1,5 @@
 <%--
-  Created by IntelliJ IDEA.
-  User: southwind
-  Date: 2018/10/23
-  Time: 9:26 AM
-  To change this template use File | Settings | File Templates.
+  需要先配置tomcat服务器
 --%>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ page isELIgnored="false" %>

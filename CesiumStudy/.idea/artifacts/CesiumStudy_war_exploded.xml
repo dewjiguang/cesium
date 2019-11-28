@@ -1,0 +1,13 @@
+<component name="ArtifactManager">
+  <artifact type="exploded-war" name="CesiumStudy:war exploded">
+    <output-path>$PROJECT_DIR$/classes/artifacts/CesiumStudy_war_exploded</output-path>
+    <root id="root">
+      <element id="directory" name="WEB-INF">
+        <element id="directory" name="classes">
+          <element id="module-output" name="CesiumStudy" />
+        </element>
+      </element>
+      <element id="javaee-facet-resources" facet="CesiumStudy/web/Web" />
+    </root>
+  </artifact>
+</component>
